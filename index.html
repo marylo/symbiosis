@@ -97,6 +97,30 @@ body.v-parcours #bgimg{display:block}
 .home p{margin:0 auto 26px;max-width:32ch;color:var(--ink);font-size:1.02rem}
 .home .btn{width:100%;max-width:320px;flex:none}
 @media(prefers-reduced-motion:reduce){.b{animation:none;stroke-dashoffset:0}.at{animation:none;opacity:1}.pl{animation:none}}
+
+.stage{position:relative}.stage .beam,.stage .caus,.stage .cap{position:absolute;pointer-events:none}
+.beam{left:0;right:0;top:0;height:3px;background:#8ff;box-shadow:0 0 18px 7px rgba(80,230,255,.85);display:none;z-index:2}
+.stage.scanning .beam{display:block;animation:bm 1.6s ease-in-out 2}
+.stage.scanning::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(80,230,255,.12) 0 2px,transparent 2px 6px);z-index:1;pointer-events:none}
+@keyframes bm{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+.caus{inset:-20%;mix-blend-mode:screen;opacity:0;background:radial-gradient(circle at 20% 30%,rgba(120,230,255,.38),transparent 28%),radial-gradient(circle at 70% 60%,rgba(120,230,255,.3),transparent 30%),radial-gradient(circle at 45% 85%,rgba(255,255,255,.22),transparent 24%)}
+.stage.alive .caus{opacity:1;animation:cs 7s ease-in-out infinite alternate}
+.stage.alive::before{opacity:1!important;animation:kb 14s ease-in-out infinite alternate}
+.stage.alive .ph{display:none}
+@keyframes cs{from{transform:translate(-4%,-3%) scale(1)}to{transform:translate(5%,4%) scale(1.15)}}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.15) translate(-2.5%,-2%)}}
+.cap{left:10px;right:10px;bottom:10px;background:rgba(6,36,42,.85);color:#e3f6f8;padding:8px 12px;border-radius:10px;font-size:.8rem;line-height:1.35;opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s;z-index:3}
+.stage.alive .cap{opacity:1;transform:none}
+.mcard.pulse{animation:mp 1.6s ease-out 1}@keyframes mp{0%{box-shadow:0 0 0 0 rgba(232,137,31,.75)}100%{box-shadow:0 0 0 18px rgba(232,137,31,0)}}
+#scn{position:fixed;inset:0;z-index:50;background:rgba(3,20,24,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;color:#e3f6f8;text-align:center}
+#scn[hidden]{display:none}
+.scv{position:relative;width:min(88vw,400px);aspect-ratio:1;border-radius:18px;overflow:hidden;background:#000}
+.scv video{width:100%;height:100%;object-fit:cover;display:block}
+.frm{position:absolute;inset:16%;border:3px solid #f5a94f;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.4)}
+.scl{position:absolute;left:16%;right:16%;top:16%;height:2px;background:#8ff;box-shadow:0 0 10px 3px rgba(80,230,255,.8);animation:sl 2s ease-in-out infinite alternate}
+@keyframes sl{to{top:84%}}
+#scn p{margin:0;max-width:34ch;font-size:.92rem}#scn .row{width:min(88vw,400px)}#scn .btn.alt{color:#e3f6f8;border-color:#3c7a86}
+@media(prefers-reduced-motion:reduce){.stage.alive::before,.stage.alive .caus,.scl,.stage.scanning .beam{animation:none}}
 </style>
 </head>
 <body>
@@ -114,6 +138,7 @@ body.v-parcours #bgimg{display:block}
 </div>
 </main>
 <div id="bar"><div id="barin"></div></div>
+<div id="scn" hidden role="dialog" aria-label="Scanner la fresque"><div class="scv"><video id="scvid" playsinline muted></video><div class="frm"></div><div class="scl"></div></div><p id="scmsg" aria-live="polite"></p><div class="row"><button class="btn" id="scdemo">✨ Simuler le scan</button><button class="btn alt" id="scx">Fermer</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 var S=[
@@ -315,19 +340,44 @@ var s=S[cur],h='<div class="steps"><div class="head"><span class="badge'+(s.nw?'
 for(var d=0;d<6;d++)h+='<button class="dot'+(d===cur?' on':'')+'" data-d="'+d+'" aria-label="'+(d<5?"Étape "+(d+1):"Final")+'">'+(d<5?d+1:"★")+'</button>';
 h+='</div>';
 if(s.fin)h+='<p class="sub">'+s.fin+'</p>';
-h+='<div class="sec"><div class="stage'+(V[cur]?'':' nov')+'" id="stage" style="--img:url('+FR[cur]+')">'+(V[cur]?'<video id="vid" src="'+V[cur]+'" playsinline controls></video>':'<div class="ph'+'">'+(s.nw?"Fresque pas encore disponible<small>Aperçu du projet</small>":"Animation pas encore disponible")+'</div>')+'</div><div class="row"><button class="btn" id="play">▶ Lancer l\'animation</button></div></div>';
+h+='<div class="sec"><div class="stage'+(V[cur]?'':' nov')+'" id="stage" style="--img:url('+FR[cur]+')">'+(V[cur]?'<video id="vid" src="'+V[cur]+'" playsinline controls></video>':'<div class="ph'+'">'+(s.nw?"Fresque pas encore disponible<small>Aperçu du projet</small>":"Animation pas encore disponible")+'</div>')+'<div class="beam"></div><div class="caus"></div><div class="cap">'+capTxt(s)+'</div></div><div class="row"><button class="btn" id="scan">📷 Scanner la fresque</button><button class="btn alt" id="play">▶ Lancer l\'animation</button></div></div>';
 if(!s.fin){h+=molCard(cur);
 h+='<div class="info"><b>Fiche espèce</b><p>'+s.i+'</p><b>Le saviez-vous ?</b><p>'+s.a+'</p></div><div id="quiz"></div>';
 h+='<div class="guide"><b>Guidage AR :</b> '+s.g+'</div><div id="mapc" class="mapc"></div>'}
 card.innerHTML=h+'</div>';
-document.getElementById("play").onclick=play;
+document.getElementById("play").onclick=play;document.getElementById("scan").onclick=scOpen;
 var rp=document.getElementById("replay");if(rp){mol3DStart(MOL[cur].k);rp.onclick=function(){if(M3)M3.reset()}}else mol3DStop();
 Array.prototype.forEach.call(card.querySelectorAll(".dot"),function(b){b.onclick=function(){go(+b.getAttribute("data-d"))}});
 document.getElementById("barin").innerHTML='<button class="btn alt" id="prev"'+(cur?'':' disabled')+'>← Précédent</button><span class="bc">'+(cur+1)+'/6</span><button class="btn" id="next"'+(cur<5?'':' disabled')+'>'+(cur===4?"Final":"Suivant")+' →</button>';
 document.getElementById("prev").onclick=function(){go(cur-1)};document.getElementById("next").onclick=function(){go(cur+1)};
 quiz();drawMap()}
+/* ===== Scan de la fresque : lit le QR (caméra) puis anime la fresque ===== */
+var SC={stream:null,raf:0,on:false,busy:false,t:0,to:0,det:null,cv:null};
+function scMsg(t){document.getElementById("scmsg").textContent=t}
+function scLoad(cb){if(window.jsQR||("BarcodeDetector" in window)){cb();return}var e=document.createElement("script");e.src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";e.onload=cb;e.onerror=cb;document.head.appendChild(e)}
+function scClose(){SC.on=false;cancelAnimationFrame(SC.raf);if(SC.stream){SC.stream.getTracks().forEach(function(t){t.stop()});SC.stream=null}var o=document.getElementById("scn");if(o)o.hidden=true}
+function scOpen(){var o=document.getElementById("scn"),v=document.getElementById("scvid");o.hidden=false;scMsg("Autorisation de la caméra…");
+if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){scMsg("Caméra indisponible ici (le site doit être en https). Utilise « Simuler le scan » pour la démo.");return}
+navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false}).then(function(st){if(o.hidden){st.getTracks().forEach(function(t){t.stop()});return}SC.stream=st;v.srcObject=st;v.play();SC.on=true;scMsg("Vise le QR code de la fresque");scLoad(scLoop)}).catch(function(){scMsg("Accès à la caméra refusé. Autorise-la dans le navigateur, ou utilise « Simuler le scan ».")})}
+function scLoop(){var v=document.getElementById("scvid"),c=SC.cv||(SC.cv=document.createElement("canvas")),g=c.getContext("2d",{willReadFrequently:true}),det=null;
+if("BarcodeDetector" in window){try{det=SC.det||(SC.det=new BarcodeDetector({formats:["qr_code"]}))}catch(e){det=null}}
+function tick(){if(!SC.on)return;SC.raf=requestAnimationFrame(tick);if(v.readyState<2||!v.videoWidth)return;var n=performance.now();if(n-SC.t<120||SC.busy)return;SC.t=n;
+if(det){SC.busy=true;det.detect(v).then(function(r){SC.busy=false;if(r.length)scHit(r[0].rawValue)}).catch(function(){SC.busy=false})}
+else if(window.jsQR){var w=Math.min(640,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);c.width=w;c.height=h;g.drawImage(v,0,0,w,h);var d=g.getImageData(0,0,w,h),q=jsQR(d.data,w,h);if(q)scHit(q.data)}
+else scMsg("Lecteur QR non chargé (connexion ?). Utilise « Simuler le scan ».")}
+tick()}
+function scHit(t){var m=String(t).match(/#(\d)\s*$/);if(!m||+m[1]<1||+m[1]>6){scMsg("QR code non reconnu : vise un QR du parcours SYMBIOSYS.");return}
+scClose();if(navigator.vibrate)navigator.vibrate(60);go(+m[1]-1);setTimeout(function(){scRun(true)},250)}
+function scRun(beam){var st=document.getElementById("stage");if(!st)return;clearTimeout(SC.to);st.classList.remove("alive","scanning");void st.offsetWidth;
+function fin(){st.classList.remove("scanning");st.classList.add("alive");var v=document.getElementById("vid");if(v){v.currentTime=0;var pr=v.play();if(pr&&pr.catch)pr.catch(function(){})}
+var m=document.querySelector(".mcard");if(m){m.classList.remove("pulse");void m.offsetWidth;m.classList.add("pulse")}}
+if(beam){st.classList.add("scanning");SC.to=setTimeout(fin,3300)}else fin()}
+function capTxt(s){return s.fin?"Les 5 espèces apparaissent ensemble : l'écosystème est réuni !":"🔍 "+(s.mi||"")}
+document.getElementById("scx").onclick=scClose;
+document.getElementById("scdemo").onclick=function(){scClose();go(cur);setTimeout(function(){scRun(true)},250)};
+document.addEventListener("keydown",function(e){if(e.key==="Escape")scClose()});
 function play(){var v=document.getElementById('vid');
-if(!v){alert("Animation pas encore disponible pour cette étape.");return}
+if(!v){scRun(false);return}
 v.currentTime=0;v.play();
 var f=v.requestFullscreen||v.webkitEnterFullscreen||v.webkitRequestFullscreen;try{if(f)f.call(v)}catch(e){}}
 function go(i){cur=i;view="parcours";render();window.scrollTo(0,0);try{history.replaceState(null,"","#"+(i+1))}catch(e){}}
@@ -342,7 +392,7 @@ var q=document.createElement('div');q.style.cssText="display:flex;justify-conten
 var l=document.createElement('div');l.textContent=(i<5?(i+1)+". ":"★ ")+s.n;l.style.marginTop="6px";d.appendChild(l);o.appendChild(d);
 new QRCode(q,{text:b+"#"+(i+1),width:128,height:128,correctLevel:QRCode.CorrectLevel.M})})};
 ["home","parcours","about"].forEach(function(v){document.getElementById("t_"+v).onclick=function(){setView(v)}});
-fromUrl();render();
+fromUrl();render();if(view==="parcours"&&/#\d/.test(location.hash))setTimeout(function(){scRun(true)},500);
 </script>
 </body>
 </html>
